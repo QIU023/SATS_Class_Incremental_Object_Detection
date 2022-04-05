@@ -400,6 +400,30 @@ class ResNet(Backbone):
             for name in self._out_features
         }
 
+from .Transformer_backbone.naive_transformers import mit_b2, ViT
+
+ViT_base_config = {
+    'image_size' : 224,
+    'patch_size' : 16,
+    'num_classes' : 1000,
+    'dim' : 768,
+    'depth' : 12,
+    'heads' : 12,
+    'mlp_dim' : 2048,
+    'dropout' : 0.1,
+    'emb_dropout' : 0.1,
+}
+
+
+@BACKBONE_REGISTRY.register()
+def build_mixt_backbone():
+    
+    pass
+
+@BACKBONE_REGISTRY.register()
+def build_vit_backbone():
+    model = ViT(**ViT_base_config)
+    return model
 
 @BACKBONE_REGISTRY.register()
 def build_resnet_backbone(cfg, input_shape):
