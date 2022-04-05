@@ -4,6 +4,8 @@ from torch import nn
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
 
+from .window_attention import WindowAttention
+
 # helpers
 
 def pair(t):
@@ -33,7 +35,7 @@ class FeedForward(nn.Module):
         return self.net(x)
 
 class Attention(nn.Module):
-    def __init__(self, dim, heads = 8, dim_head = 64, dropout = 0.):
+    def __init__(self, dim, heads = 8, dim_head = 64, dropout = 0., window_config = None):
         super().__init__()
         inner_dim = dim_head *  heads
         project_out = not (heads == 1 and dim_head == dim)
@@ -42,32 +44,44 @@ class Attention(nn.Module):
         self.scale = dim_head ** -0.5
 
         self.attend = nn.Softmax(dim = -1)
-        self.to_qkv = nn.Linear(dim, inner_dim * 3, bias = False)
+        if window_config is None:
+            self.to_qkv = nn.Linear(dim, inner_dim * 3, bias = False)
+            self.to_out = nn.Sequential(
+                nn.Linear(inner_dim, dim),
+                nn.Dropout(dropout)
+            ) if project_out else nn.Identity()
+        else:
+            # self.to_qkv = None
 
-        self.to_out = nn.Sequential(
-            nn.Linear(inner_dim, dim),
-            nn.Dropout(dropout)
-        ) if project_out else nn.Identity()
+            pass
+
+        self.window_config = window_config
+
 
     def forward(self, x):
-        qkv = self.to_qkv(x).chunk(3, dim = -1)
-        q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h = self.heads), qkv)
+        if self.window_config:
+            qkv = self.to_qkv(x).chunk(3, dim = -1)
+            q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h = self.heads), qkv)
 
-        dots = torch.matmul(q, k.transpose(-1, -2)) * self.scale
+            dots = torch.matmul(q, k.transpose(-1, -2)) * self.scale
 
-        attn = self.attend(dots)
+            attn = self.attend(dots)
 
-        out = torch.matmul(attn, v)
-        out = rearrange(out, 'b h n d -> b n (h d)')
-        return self.to_out(out), attn
+            out = torch.matmul(attn, v)
+            out = rearrange(out, 'b h n d -> b n (h d)')
+            out = self.to_out(out)
+        else:
+
+            pass
+        return out, attn
 
 class Transformer(nn.Module):
-    def __init__(self, dim, depth, heads, dim_head, mlp_dim, dropout = 0.):
+    def __init__(self, dim, depth, heads, dim_head, mlp_dim, dropout = 0., window_config = []):
         super().__init__()
         self.layers = nn.ModuleList([])
-        for _ in range(depth):
+        for i in range(depth):
             self.layers.append(nn.ModuleList([
-                PreNorm(dim, Attention(dim, heads = heads, dim_head = dim_head, dropout = dropout)),
+                PreNorm(dim, Attention(dim, heads = heads, dim_head = dim_head, dropout = dropout, window_config = window_config[i])),
                 PreNorm(dim, FeedForward(dim, mlp_dim, dropout = dropout))
             ]))
         self.ret_attn_ids = [10, 7, 4, 1]
@@ -95,8 +109,6 @@ cnn_hyperparam_dict = {
     '18GF':{
         
     }
-    
-    
 }
 
 class ShallowCNNstem(nn.Module):
@@ -121,10 +133,15 @@ class ShallowCNNstem(nn.Module):
         return x
 
 class ViT(nn.Module):
-    def __init__(self, *, image_size, patch_size, num_classes, dim, depth, heads, mlp_dim, pool = 'cls', channels = 3, dim_head = 64, dropout = 0., emb_dropout = 0.):
+    def __init__(self, *, image_size, patch_size, num_classes, 
+        dim, depth, heads, mlp_dim, pool = 'cls', 
+        channels = 3, dim_head = 64, dropout = 0., emb_dropout = 0., 
+        window_config = []):
         super().__init__()
         image_height, image_width = pair(image_size)
         patch_height, patch_width = pair(patch_size)
+
+
 
         assert image_height % patch_height == 0 and image_width % patch_width == 0, 'Image dimensions must be divisible by the patch size.'
 
@@ -143,7 +160,7 @@ class ViT(nn.Module):
         self.cls_token = nn.Parameter(torch.randn(1, 1, dim))
         self.dropout = nn.Dropout(emb_dropout)
 
-        self.transformer = Transformer(dim, depth-1, heads, dim_head, mlp_dim, dropout)
+        self.transformer = Transformer(dim, depth, heads, dim_head, mlp_dim, dropout, window_config)
 
         self.out_dim = dim
         # print(dim)

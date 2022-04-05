@@ -3,10 +3,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.modules.linear import Identity
 
-def get32x_ds():
-    return nn.AvgPool2d(kernel_size=2, stride=2)
+def get32x_ds(in_chn, out_chn):
+    # return nn.AvgPool2d(kernel_size=2, stride=2)
+    return nn.Conv2d(in_chn, out_chn, kernel_size=3, stride=2, padding=1)
 
-def get8x_ups(in_chn, out_chn, h, w):
+def get8x_ups(in_chn, out_chn):
     return  nn.ConvTranspose2d(in_chn, out_chn, kernel_size=2, stride=2)
 
 def get4x_ups(in_chn, out_chn, h, w):
@@ -27,7 +28,7 @@ def get_fpn_process(in_chn, out_chn, h, w):
 
 class Feature_rescale_module(nn.Module):
     def __init__(self, in_chn, out_chn, h, w):
-        self.scale_list = [get4x_ups(in_chn, out_chn, h, w),  get8x_ups(in_chn, out_chn, h, w), nn.Identity(), get32x_ds()]
+        self.scale_list = [get4x_ups(in_chn, out_chn, h, w),  get8x_ups(in_chn, out_chn), nn.Identity(), get32x_ds(in_chn, out_chn)]
         # self.up8x =
         # self.down32x = get32x_ds()
         self.fpn_process = nn.ModuleList([get_fpn_process(in_chn, out_chn, h, w)]*4)
