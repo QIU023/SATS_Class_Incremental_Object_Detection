@@ -417,8 +417,8 @@ ViT_base_config = {
 
 @BACKBONE_REGISTRY.register()
 def build_mixt_backbone():
-    
-    pass
+    return mit_b2(return_attn=True)
+    # pas
 
 @BACKBONE_REGISTRY.register()
 def build_vit_backbone():

@@ -35,7 +35,7 @@ class FeedForward(nn.Module):
         return self.net(x)
 
 class Attention(nn.Module):
-    def __init__(self, dim, heads = 8, dim_head = 64, dropout = 0., window_config = None):
+    def __init__(self, dim, heads = 8, dim_head = 64, dropout = 0.):
         super().__init__()
         inner_dim = dim_head *  heads
         project_out = not (heads == 1 and dim_head == dim)
@@ -44,57 +44,134 @@ class Attention(nn.Module):
         self.scale = dim_head ** -0.5
 
         self.attend = nn.Softmax(dim = -1)
-        if window_config is None:
-            self.to_qkv = nn.Linear(dim, inner_dim * 3, bias = False)
-            self.to_out = nn.Sequential(
-                nn.Linear(inner_dim, dim),
-                nn.Dropout(dropout)
-            ) if project_out else nn.Identity()
-        else:
-            # self.to_qkv = None
+        # if window_config is None:
+        self.to_qkv = nn.Linear(dim, inner_dim * 3, bias = False)
+        self.to_out = nn.Sequential(
+            nn.Linear(inner_dim, dim),
+            nn.Dropout(dropout)
+        ) if project_out else nn.Identity()
+        # else:
+        #     # self.to_qkv = None
 
-            pass
+        #     pass
 
-        self.window_config = window_config
+        # self.window_config = window_config
 
 
     def forward(self, x):
-        if self.window_config:
-            qkv = self.to_qkv(x).chunk(3, dim = -1)
-            q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h = self.heads), qkv)
+        # if self.window_config:
+        qkv = self.to_qkv(x).chunk(3, dim = -1)
+        q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h = self.heads), qkv)
 
-            dots = torch.matmul(q, k.transpose(-1, -2)) * self.scale
+        dots = torch.matmul(q, k.transpose(-1, -2)) * self.scale
 
-            attn = self.attend(dots)
+        attn = self.attend(dots)
 
-            out = torch.matmul(attn, v)
-            out = rearrange(out, 'b h n d -> b n (h d)')
-            out = self.to_out(out)
-        else:
+        out = torch.matmul(attn, v)
+        out = rearrange(out, 'b h n d -> b n (h d)')
+        out = self.to_out(out)
+        # else:
 
-            pass
+        #     pass
         return out, attn
+
+import math
+
+class Residual_Conv(nn.Module):
+    def __init__(self, dim):
+        super(Residual_Conv, self).__init__()
+        self.conv = nn.Sequential(
+            nn.Conv2d(dim, dim, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(dim, dim, kernel_size=3, stride=1, padding=1),
+        )
+        self.conv[1].weights.data.copy_(torch.zeros(dim, dim, 3, 3))
+        self.dim = dim
+
+    def forward(self, x):
+        b, n, c = x.shape
+        h, w = int(math.sqrt(n)), int(math.sqrt(n))
+        x = x.view(b, h, w, c).permute((0, 3, 1, 2))
+        assert self.dim == c
+        conv_out = self.conv(x)
+        return conv_out + x
+        
+        
+class Attention(nn.Module):
+    def __init__(self, dim, heads = 8, dim_head = 64, dropout = 0.):
+        super().__init__()
+        inner_dim = dim_head *  heads
+        project_out = not (heads == 1 and dim_head == dim)
+
+        self.heads = heads
+        self.scale = dim_head ** -0.5
+
+        self.attend = nn.Softmax(dim = -1)
+        # if window_config is None:
+        self.to_qkv = nn.Linear(dim, inner_dim * 3, bias = False)
+        self.to_out = nn.Sequential(
+            nn.Linear(inner_dim, dim),
+            nn.Dropout(dropout)
+        ) if project_out else nn.Identity()
+        # else:
+        #     # self.to_qkv = None
+
+        #     pass
+
+        # self.window_config = window_config
+
+
+    def forward(self, x):
+        # if self.window_config:
+        qkv = self.to_qkv(x).chunk(3, dim = -1)
+        q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h = self.heads), qkv)
+
+        dots = torch.matmul(q, k.transpose(-1, -2)) * self.scale
+
+        attn = self.attend(dots)
+
+        out = torch.matmul(attn, v)
+        out = rearrange(out, 'b h n d -> b n (h d)')
+        out = self.to_out(out)
+        # else:
+
+        #     pass
+        return out, attn
+
 
 class Transformer(nn.Module):
     def __init__(self, dim, depth, heads, dim_head, mlp_dim, dropout = 0., window_config = []):
         super().__init__()
         self.layers = nn.ModuleList([])
         for i in range(depth):
-            self.layers.append(nn.ModuleList([
-                PreNorm(dim, Attention(dim, heads = heads, dim_head = dim_head, dropout = dropout, window_config = window_config[i])),
-                PreNorm(dim, FeedForward(dim, mlp_dim, dropout = dropout))
-            ]))
-        self.ret_attn_ids = [10, 7, 4, 1]
+            if window_config[i] is not None:
+                self.layers.append(nn.ModuleList([
+                    PreNorm(dim, WindowAttention(dim, window_size = window_config[i], num_heads = heads, attn_drop = dropout, proj_drop = dropout)),
+                    PreNorm(dim, FeedForward(dim, mlp_dim, dropout = dropout))
+                ]))                
+            else:
+                self.layers.append(nn.ModuleList([
+                    PreNorm(dim, Attention(dim, heads = heads, dim_head = dim_head, dropout = dropout)),
+                    PreNorm(dim, FeedForward(dim, mlp_dim, dropout = dropout)),
+                    Residual_Conv(dim),
+                ]))
+        self.ret_attn_ids = [2, 5, 8, 11]
 
     def forward(self, x):
         attn_arr = []
         idx = 0
-        for attn, ff in self.layers:
-            attn_out, attn_score = attn(x)
-            x = attn_out + x
-            x = ff(x) + x
+        for idx, item in enumerate(self.layers):
             if idx in self.ret_attn_ids:
+                attn, ff, res_conv = item
+                attn_out, attn_score = attn(x)
+                x = attn_out + x
+                x = ff(x) + x
+                x = res_conv(x)
                 attn_arr.append(attn_score)
+            else:
+                attn, ff = item
+                attn_out = attn(x)
+                x = attn_out + x
+                x = ff(x) + x
         return x, attn_arr
 
 cnn_hyperparam_dict = {

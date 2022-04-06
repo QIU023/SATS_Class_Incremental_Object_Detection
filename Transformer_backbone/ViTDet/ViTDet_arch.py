@@ -27,7 +27,7 @@ vit_config = {
     'mlp_dim' : 2048,
     'dropout' : 0.1,
     'emb_dropout' : 0.1,
-    'window_config' : [,None]*4,
+    'window_config' : [7,7,7,7,7,None]*4,
     'final_residual_conv': [True]*4     # last layer in this block initialized to 0!!!!
 }
 

@@ -124,7 +124,11 @@ _C.DATALOADER.FILTER_EMPTY_ANNOTATIONS = True
 # ---------------------------------------------------------------------------- #
 _C.MODEL.BACKBONE = CN()
 
-_C.MODEL.BACKBONE.NAME = "build_resnet_backbone"
+# _C.MODEL.BACKBONE.NAME = "build_resnet_backbone"
+
+_C.MODEL.BACKBONE.NAME = 'build_mixt_backbone'
+# _C.MODEL.BACKBONE.NAME = 'build_vit_backbone'
+
 # Add StopGrad at a specified stage so the bottom layers are frozen
 _C.MODEL.BACKBONE.FREEZE_AT = 2
 
