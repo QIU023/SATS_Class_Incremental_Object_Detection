@@ -83,8 +83,11 @@ def get_model_zoo_configs() -> List[str]:
         os.symlink(source_configs_dir, destination)
     except OSError:
         # Fall back to copying if symlink fails: ex. on Windows.
-        shutil.copytree(source_configs_dir, destination)
-
+        try:
+            shutil.copytree(source_configs_dir, destination)
+        except:
+            print('file exists')
+            
     config_paths = glob.glob("configs/**/*.yaml", recursive=True)
     return config_paths
 
