@@ -158,6 +158,7 @@ void shape_check(
       "but got: %s",
       weight.ndimension());
 
+
   TORCH_CHECK(weight.is_contiguous(), "weight tensor has to be contiguous");
 
   TORCH_CHECK(
@@ -174,6 +175,7 @@ void shape_check(
       kW,
       weight.size(2),
       weight.size(3));
+
 
   TORCH_CHECK(
       dW > 0 && dH > 0,
@@ -197,7 +199,7 @@ void shape_check(
     dimh++;
     dimw++;
   }
-  
+
   TORCH_CHECK(
       ndim == 3 || ndim == 4,
       "3D or 4D input tensor expected but got: %s",
@@ -211,6 +213,7 @@ void shape_check(
       (inputHeight + 2 * padH - (dilationH * (kH - 1) + 1)) / dH + 1;
   long outputWidth =
       (inputWidth + 2 * padW - (dilationW * (kW - 1) + 1)) / dW + 1;
+
 
   TORCH_CHECK(
       nInputPlane % deformable_group == 0,
@@ -226,6 +229,7 @@ void shape_check(
         nOutputPlane,
         outputHeight,
         outputWidth);
+
 
   TORCH_CHECK(
       input.size(1) == nInputPlane,
@@ -246,16 +250,19 @@ void shape_check(
       offset.size(2),
       offset.size(3));
 
+
   TORCH_CHECK(
       (offset.size(1) == deformable_group * 2 * kH * kW),
       "invalid number of channels of offset");
 
   if (gradOutput != NULL) {
+
     TORCH_CHECK(
         gradOutput->size(dimf) == nOutputPlane,
         "invalid number of gradOutput planes, expected: %d, but got: %d",
         nOutputPlane,
         gradOutput->size(dimf));
+
 
     TORCH_CHECK(
         (gradOutput->size(dimh) == outputHeight &&
@@ -500,6 +507,7 @@ int deform_conv_backward_input_cuda(
   long outputHeight =
       (inputHeight + 2 * padH - (dilationH * (kH - 1) + 1)) / dH + 1;
 
+
   TORCH_CHECK((offset.size(0) == batchSize), 3, "invalid batch size of offset");
   gradInput = gradInput.view({batchSize, nInputPlane, inputHeight, inputWidth});
   columns = at::zeros(
@@ -693,6 +701,7 @@ int deform_conv_backward_parameters_cuda(
   long outputHeight =
       (inputHeight + 2 * padH - (dilationH * (kH - 1) + 1)) / dH + 1;
 
+
   TORCH_CHECK((offset.size(0) == batchSize), "invalid batch size of offset");
 
   columns = at::zeros(
@@ -820,6 +829,7 @@ void modulated_deform_conv_cuda_forward(
     const int group,
     const int deformable_group,
     const bool with_bias) {
+
   TORCH_CHECK(input.is_contiguous(), "input tensor has to be contiguous");
   TORCH_CHECK(weight.is_contiguous(), "weight tensor has to be contiguous");
 
@@ -950,6 +960,7 @@ void modulated_deform_conv_cuda_backward(
     int group,
     int deformable_group,
     const bool with_bias) {
+
   TORCH_CHECK(input.is_contiguous(), "input tensor has to be contiguous");
   TORCH_CHECK(weight.is_contiguous(), "weight tensor has to be contiguous");
 
