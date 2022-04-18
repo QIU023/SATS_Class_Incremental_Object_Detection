@@ -8,11 +8,11 @@ from detectron2.layers import Conv2d, ShapeSpec, get_norm
 
 from .backbone import Backbone
 from .build import BACKBONE_REGISTRY
-<<<<<<< HEAD
+# <<<<<<< HEAD
 from .resnet import build_resnet_backbone, build_vit_backbone, build_mixt_backbone
-=======
-from .resnet import build_resnet_backbone
->>>>>>> zyc_dev
+# =======
+# from .resnet import build_resnet_backbone
+# >>>>>>> zyc_dev
 
 __all__ = ["build_resnet_fpn_backbone", "build_retinanet_resnet_fpn_backbone", "FPN"]
 
@@ -254,7 +254,7 @@ def build_mixt_fpn_backbone(cfg, input_shape: ShapeSpec):
     Returns:
         backbone (Backbone): backbone module, must be a subclass of :class:`Backbone`.
     """
-    bottom_up = build_vit_backbone()
+    bottom_up = build_mixt_backbone()
     in_features = cfg.MODEL.FPN.IN_FEATURES
     out_channels = cfg.MODEL.FPN.OUT_CHANNELS
     backbone = FPN(
