@@ -243,6 +243,8 @@ class SimpleTrainer(TrainerBase):
         Implement the standard training logic described above.
         """
         assert self.model.training, "[SimpleTrainer] model was changed to eval mode!"
+#         from ipdb import set_trace
+#         set_trace()
 
         if (self.iter + 1) % self.cfg.WG.TRAIN_WARP_AT_ITR_NO == 0 and self.cfg.WG.ENABLE:
             verbose = False
@@ -285,10 +287,12 @@ class SimpleTrainer(TrainerBase):
 
             self.cfg.WG.TRAIN_WARP = False
 
+            
         start = time.perf_counter()
         data = next(self._data_loader_iter)
         data_time = time.perf_counter() - start
 
+#         with autocast():
         loss_dict = self.model(data)
 
         metrics_dict = loss_dict
@@ -321,6 +325,9 @@ class SimpleTrainer(TrainerBase):
             self.optimizer.step()
         else:
             self.optimizer.zero_grad()
+#                 self.grad_scaler.scale(task_loss).backward()
+#                 self.grad_scaler.step(self.optimizer)
+#                 self.grad_scaler.update()
             task_loss.backward()
             self.optimizer.step()
 

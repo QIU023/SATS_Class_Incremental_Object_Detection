@@ -135,6 +135,7 @@ inline int deform_conv_forward(
 #ifdef WITH_CUDA
     TORCH_CHECK(weight.type().is_cuda(), "weight tensor is not on GPU!");
     TORCH_CHECK(offset.type().is_cuda(), "offset tensor is not on GPU!");
+// >>>>>>> zyc_dev
     return deform_conv_forward_cuda(
         input,
         weight,
@@ -184,6 +185,7 @@ inline int deform_conv_backward_input(
     TORCH_CHECK(input.type().is_cuda(), "input tensor is not on GPU!");
     TORCH_CHECK(weight.type().is_cuda(), "weight tensor is not on GPU!");
     TORCH_CHECK(offset.type().is_cuda(), "offset tensor is not on GPU!");
+// >>>>>>> zyc_dev
     return deform_conv_backward_input_cuda(
         input,
         offset,
@@ -233,6 +235,7 @@ inline int deform_conv_backward_filter(
 #ifdef WITH_CUDA
     TORCH_CHECK(input.type().is_cuda(), "input tensor is not on GPU!");
     TORCH_CHECK(offset.type().is_cuda(), "offset tensor is not on GPU!");
+// >>>>>>> zyc_dev
     return deform_conv_backward_parameters_cuda(
         input,
         offset,
@@ -284,6 +287,7 @@ inline void modulated_deform_conv_forward(
     TORCH_CHECK(weight.type().is_cuda(), "weight tensor is not on GPU!");
     TORCH_CHECK(bias.type().is_cuda(), "bias tensor is not on GPU!");
     TORCH_CHECK(offset.type().is_cuda(), "offset tensor is not on GPU!");
+// >>>>>>> zyc_dev
     return modulated_deform_conv_cuda_forward(
         input,
         weight,
@@ -342,6 +346,7 @@ inline void modulated_deform_conv_backward(
     TORCH_CHECK(weight.type().is_cuda(), "weight tensor is not on GPU!");
     TORCH_CHECK(bias.type().is_cuda(), "bias tensor is not on GPU!");
     TORCH_CHECK(offset.type().is_cuda(), "offset tensor is not on GPU!");
+// >>>>>>> zyc_dev
     return modulated_deform_conv_cuda_backward(
         input,
         weight,

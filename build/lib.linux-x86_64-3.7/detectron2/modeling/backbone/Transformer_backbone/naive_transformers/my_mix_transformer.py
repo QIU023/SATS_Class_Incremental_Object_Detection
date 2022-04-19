@@ -276,14 +276,24 @@ class ShallowCNNstem(nn.Module):
         
         return x, H, W
 
-class MixVisionTransformer(nn.Module):
+from detectron2.modeling.backbone.backbone import Backbone
+    
+class MixVisionTransformer(Backbone):
     def __init__(self, img_size=224, patch_size=16, in_chans=3, num_classes=1000, embed_dims=[64, 128, 256, 512],
                  num_heads=[1, 2, 4, 8], mlp_ratios=[4, 4, 4, 4], qkv_bias=False, qk_scale=None, drop_rate=0.,
                  attn_drop_rate=0., drop_path_rate=0., norm_layer=nn.LayerNorm,
                  depths=[3, 4, 6, 3], sr_ratios=[8, 4, 2, 1], return_attn=False, nf=256, cnn_stem=False):
-        super().__init__()
+        super(MixVisionTransformer, self).__init__()
         self.num_classes = num_classes
         self.depths = depths
+        
+        self._out_features = ['res3']
+        
+        self._out_feature_channels = {}
+        self._out_feature_strides = {}
+        for i in range(4):
+            self._out_feature_channels['res'+'%d'%(i+1)] = embed_dims[i]
+            self._out_feature_strides['res'+'%d'%(i+1)] = 2
         
 #         self.return_attn = return_attn
 #         self.batch_attn = []
@@ -406,78 +416,56 @@ class MixVisionTransformer(nn.Module):
 
     def forward_features(self, x):
         B = x.shape[0]
-        outs = []
+        outs = {}
         fin_attn = []
 
 #         print(self.return_attn)
         
         # stage 1
         x, H, W = self.patch_embed1(x)
-#         print(x.shape)
         for i, blk in enumerate(self.block1):
             x, attn = blk(x, H, W)
         fin_attn.append(attn)
-#         fin_attn.append(attn)
         x = self.norm1(x)
-#         print(x.shape)
         x = x.reshape(B, H, W, -1).permute(0, 3, 1, 2).contiguous()
-#         print(x.shape)
-        # outs.append(x)
+        if 'res1' in self._out_features:
+            outs['res1'] = x
 
         # stage 2
         x, H, W = self.patch_embed2(x)
-#         print(x.shape)
         for i, blk in enumerate(self.block2):
             x, attn = blk(x, H, W)
         fin_attn.append(attn)
-#         if self.return_attn:
-#             x, attn = x
-#         fin_attn.append(attn)
         x = self.norm2(x)
         x = x.reshape(B, H, W, -1).permute(0, 3, 1, 2).contiguous()
-        # outs.append(x)
+        if 'res2' in self._out_features:
+            outs['res2'] = x
 
         # stage 3
-#         print(x.shape)
         x, H, W = self.patch_embed3(x)
-#         print(x.shape)
         for i, blk in enumerate(self.block3):
             x, attn = blk(x, H, W)
         fin_attn.append(attn)
-#         if self.return_attn:
-#             x, attn = x
-#         fin_attn.append(attn)
         x = self.norm3(x)
         x = x.reshape(B, H, W, -1).permute(0, 3, 1, 2).contiguous()
-        # outs.append(x)
-
+        if 'res3' in self._out_features:
+            outs['res3'] = x
+            
         # stage 4
         x, H, W = self.patch_embed4(x)
-#         print(x.shape)
         for i, blk in enumerate(self.block4):
             x, attn = blk(x, H, W)
         fin_attn.append(attn)
-#         if self.return_attn:
-#             x, attn = x
-#         fin_attn.append(attn)
         x = self.norm4(x)
+        x = x.reshape(B, H, W, -1).permute(0, 3, 1, 2).contiguous()
+#         print(x.shape)
+        if 'res4' in self._out_features:
+            outs['res4'] = x
         # B L C
         
-        # x = x.reshape(B, H, W, -1).permute(0, 3, 1, 2).contiguous()
-        x = x.mean(dim=1)
-        # equal to GAP
-
-        return {"raw_features": x,
-                "features": x,
-                'logits': x,
-                "distill_attn": fin_attn}
-
-        # return outs, fin_attn
-        # return {"raw_features": outs[-1].reshape((outs[0].shape[0], -1)), 
-        #         "features": outs[-1], 
-        #         "attention": outs,
-        #         "distill_attn": fin_attn}
-#         return outs
+        outs['distill_attn'] = fin_attn
+        
+        return outs
 
     def forward(self, x):
         return self.forward_features(x)

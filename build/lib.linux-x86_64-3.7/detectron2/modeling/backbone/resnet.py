@@ -390,6 +390,7 @@ class ResNet(Backbone):
             x = self.linear(x)
             if "linear" in self._out_features:
                 outputs["linear"] = x
+#         print(outputs.keys())
         return outputs
 
     def output_shape(self):
@@ -416,12 +417,12 @@ ViT_base_config = {
 
 
 @BACKBONE_REGISTRY.register()
-def build_mixt_backbone():
+def build_mixt_backbone(cfg, input_shape):
     return mit_b2(return_attn=True)
     # pas
 
 @BACKBONE_REGISTRY.register()
-def build_vit_backbone():
+def build_vit_backbone(cfg, input_shape):
     model = ViT(**ViT_base_config)
     return model
 

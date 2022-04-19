@@ -382,6 +382,10 @@ class Res5ROIHeads(ROIHeads):
         out_channels         = cfg.MODEL.RESNETS.RES2_OUT_CHANNELS * stage_channel_factor
         stride_in_1x1        = cfg.MODEL.RESNETS.STRIDE_IN_1X1
         norm                 = cfg.MODEL.RESNETS.NORM
+        
+#         print(num_groups, width_per_group, bottleneck_channels, out_channels, stride_in_1x1)
+#         raise RuntimeError
+        
         assert not cfg.MODEL.RESNETS.DEFORM_ON_PER_STAGE[-1], \
             "Deformable conv is not yet supported in res5 head."
         # fmt: on
@@ -400,6 +404,10 @@ class Res5ROIHeads(ROIHeads):
         return nn.Sequential(*blocks), out_channels
 
     def _shared_roi_transform(self, features, boxes):
+#         print(features.shape, boxes.shape)
+#         from ipdb import set_trace
+#         set_trace()
+        
         x = self.pooler(features, boxes)
         return x
 
@@ -485,8 +493,13 @@ class Res5ROIHeads(ROIHeads):
         boxes = self._shared_roi_transform(
             [features[f] for f in self.in_features], proposal_boxes
         )
+        
+#         print(boxes.shape)
 
         box_features = self.res5(boxes)
+        
+#         raise RuntimeError
+        
         feature_pooled = box_features.mean(dim=[2, 3])  # pooled to 1x1
         pred_class_logits, pred_proposal_deltas = self.box_predictor(feature_pooled)
         del feature_pooled
