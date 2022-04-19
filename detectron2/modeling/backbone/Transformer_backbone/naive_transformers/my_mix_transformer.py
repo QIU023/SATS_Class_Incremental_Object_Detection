@@ -458,7 +458,7 @@ class MixVisionTransformer(Backbone):
         fin_attn.append(attn)
         x = self.norm4(x)
         x = x.reshape(B, H, W, -1).permute(0, 3, 1, 2).contiguous()
-        print(x.shape)
+#         print(x.shape)
         if 'res4' in self._out_features:
             outs['res4'] = x
         # B L C
