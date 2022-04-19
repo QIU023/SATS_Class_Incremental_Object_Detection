@@ -405,8 +405,8 @@ class Res5ROIHeads(ROIHeads):
 
     def _shared_roi_transform(self, features, boxes):
 #         print(features.shape, boxes.shape)
-        from ipdb import set_trace
-        set_trace()
+#         from ipdb import set_trace
+#         set_trace()
         
         x = self.pooler(features, boxes)
         return x
@@ -494,11 +494,11 @@ class Res5ROIHeads(ROIHeads):
             [features[f] for f in self.in_features], proposal_boxes
         )
         
-        print(boxes.shape)
+#         print(boxes.shape)
 
         box_features = self.res5(boxes)
         
-        raise RuntimeError
+#         raise RuntimeError
         
         feature_pooled = box_features.mean(dim=[2, 3])  # pooled to 1x1
         pred_class_logits, pred_proposal_deltas = self.box_predictor(feature_pooled)

@@ -1,4 +1,4 @@
-GPU=0
+GPU=1
 
 CUDA_VISIBLE_DEVICES=${GPU} python tools/train_net.py --num-gpus 1 --config-file ./configs/PascalVOC-Detection/SATS_ViTDet/base_15.yaml SOLVER.IMS_PER_BATCH 2 SOLVER.BASE_LR 0.005 MODEL.BACKBONE.NAME 'build_mixt_backbone' 
 

@@ -6,6 +6,7 @@ MODEL:
   RESNETS:
     DEPTH: 50
     OUT_FEATURES: ['res3']
+    RES2_OUT_CHANNELS: 80
   ROI_HEADS:
     # Maximum number of foreground classes to expect
     NUM_CLASSES: 20

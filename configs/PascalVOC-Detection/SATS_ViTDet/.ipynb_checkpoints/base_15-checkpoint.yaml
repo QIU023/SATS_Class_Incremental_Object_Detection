@@ -5,6 +5,8 @@ MODEL:
   MASK_ON: False
   RESNETS:
     DEPTH: 50
+    OUT_FEATURES: ['res3']
+    RES2_OUT_CHANNELS: 80
   ROI_HEADS:
     # Maximum number of foreground classes to expect
     NUM_CLASSES: 20
@@ -18,8 +20,10 @@ MODEL:
     NUM_NOVEL_CLASSES: 5
     POSITIVE_FRACTION: 0.25
     NMS_THRESH_TEST: 0.3
+    IN_FEATURES: ['res3']
   RPN:
     FREEZE_WEIGHTS: False
+    IN_FEATURES: ['res3']
   ROI_BOX_HEAD:
     CLS_AGNOSTIC_BBOX_REG: True
 INPUT:
