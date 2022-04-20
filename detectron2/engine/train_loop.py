@@ -257,33 +257,33 @@ class SimpleTrainer(TrainerBase):
             self.optimizer.zero_grad()
             images = self.image_store.retrieve()
 
-            with autocast():
-                if not self.cfg.WG.USE_FEATURE_STORE:
-                    for i in range(0, len(images), self.cfg.WG.BATCH_SIZE):
-                        batched_images = images[i:i+self.cfg.WG.BATCH_SIZE]
-                        loss_dict = self.model(batched_images)
-                        cls_wrp = loss_dict.pop('loss_cls')
-                        reg_wrp = loss_dict.pop('loss_box_reg')
-                        warp_loss = cls_wrp + reg_wrp
-                        self.optimizer.zero_grad()
-#                         warp_loss.backward()
-                        self.grad_scaler.scale(warp_loss).backward()
-                        for name, param in self.model.named_parameters():
-                            if name not in self.cfg.WG.WARP_LAYERS and param.grad is not None:
-                                param.grad.fill_(0)
-#                         self.optimizer.step()
-                        self.grad_scaler.step(self.optimizer)
-                        self.grad_scaler.update()
-                else:
-                    warp_loss_dict = self.model(images)
-                    warp_loss = sum(loss for loss in warp_loss_dict.values())
-                    self._detect_anomaly(warp_loss, warp_loss_dict)
+#             with autocast():
+            if not self.cfg.WG.USE_FEATURE_STORE:
+                for i in range(0, len(images), self.cfg.WG.BATCH_SIZE):
+                    batched_images = images[i:i+self.cfg.WG.BATCH_SIZE]
+                    loss_dict = self.model(batched_images)
+                    cls_wrp = loss_dict.pop('loss_cls')
+                    reg_wrp = loss_dict.pop('loss_box_reg')
+                    warp_loss = cls_wrp + reg_wrp
                     self.optimizer.zero_grad()
-#                     warp_loss.backward()
-#                     self.optimizer.step()                  
-                    self.grad_scaler.scale(warp_loss).backward()
-                    self.grad_scaler.step(self.optimizer)
-                    self.grad_scaler.update()
+                    warp_loss.backward()
+#                     self.grad_scaler.scale(warp_loss).backward()
+                    for name, param in self.model.named_parameters():
+                        if name not in self.cfg.WG.WARP_LAYERS and param.grad is not None:
+                            param.grad.fill_(0)
+                    self.optimizer.step()
+#                     self.grad_scaler.step(self.optimizer)
+#                     self.grad_scaler.update()
+            else:
+                warp_loss_dict = self.model(images)
+                warp_loss = sum(loss for loss in warp_loss_dict.values())
+                self._detect_anomaly(warp_loss, warp_loss_dict)
+                self.optimizer.zero_grad()
+                warp_loss.backward()
+                self.optimizer.step()                  
+#                 self.grad_scaler.scale(warp_loss).backward()
+#                 self.grad_scaler.step(self.optimizer)
+#                 self.grad_scaler.update()
 
             self.cfg.WG.TRAIN_WARP = False
 

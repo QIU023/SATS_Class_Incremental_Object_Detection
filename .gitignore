@@ -1,3 +1,4 @@
 datasets/VOC2007/
 build/
 output/
+*.pth
